@@ -260,6 +260,182 @@
           "kind": "operation"
         },
         {
+          "blocking": false,
+          "executionType": "CPU_LITE",
+          "errors": [
+            {
+              "type": "CUSTOM_ERROR",
+              "namespace": "MARVEL",
+              "parent": {
+                "type": "ANY",
+                "namespace": "MARVEL",
+                "parent": {
+                  "type": "ANY",
+                  "namespace": "MULE"
+                }
+              }
+            }
+          ],
+          "output": {
+            "type": {
+              "format": "java",
+              "type": "String",
+              "annotations": {
+                "typeId": "java.lang.String"
+              }
+            },
+            "hasDynamicType": false,
+            "description": "",
+            "modelProperties": {}
+          },
+          "outputAttributes": {
+            "type": {
+              "format": "java",
+              "type": "Object",
+              "annotations": {
+                "typeId": "java.lang.Object",
+                "classInformation": {
+                  "hasDefaultConstructor": true,
+                  "isInterface": false,
+                  "isInstantiable": true,
+                  "isAbstract": false,
+                  "isFinal": false,
+                  "implementedInterfaces": [],
+                  "parent": "",
+                  "genericTypes": []
+                },
+                "typeAlias": {
+                  "value": "Object"
+                }
+              },
+              "fields": []
+            },
+            "hasDynamicType": false,
+            "description": "",
+            "modelProperties": {}
+          },
+          "transactional": false,
+          "requiresConnection": false,
+          "supportsStreaming": false,
+          "stereotypes": [],
+          "parameterGroupModels": [
+            {
+              "parameters": [
+                {
+                  "type": {
+                    "format": "java",
+                    "type": "Binary",
+                    "annotations": {
+                      "typeId": "java.io.InputStream"
+                    }
+                  },
+                  "hasDynamicType": false,
+                  "required": false,
+                  "isConfigOverride": false,
+                  "expressionSupport": "SUPPORTED",
+                  "defaultValue": "#[payload]",
+                  "role": "BEHAVIOUR",
+                  "dslConfiguration": {
+                    "allowsInlineDefinition": true,
+                    "allowsReferences": true,
+                    "allowTopLevelDefinition": false
+                  },
+                  "layoutModel": {
+                    "password": false,
+                    "text": false,
+                    "query": false,
+                    "order": 1
+                  },
+                  "elementReferences": [],
+                  "name": "stream",
+                  "description": "",
+                  "modelProperties": {}
+                },
+                {
+                  "type": {
+                    "format": "java",
+                    "type": "String",
+                    "annotations": {
+                      "typeId": "java.lang.String"
+                    }
+                  },
+                  "hasDynamicType": false,
+                  "required": false,
+                  "isConfigOverride": false,
+                  "expressionSupport": "SUPPORTED",
+                  "role": "BEHAVIOUR",
+                  "dslConfiguration": {
+                    "allowsInlineDefinition": true,
+                    "allowsReferences": true,
+                    "allowTopLevelDefinition": false
+                  },
+                  "layoutModel": {
+                    "password": false,
+                    "text": false,
+                    "query": false,
+                    "order": 2,
+                    "tabName": "Advanced"
+                  },
+                  "elementReferences": [],
+                  "name": "outputMimeType",
+                  "description": "The mime type of the payload that this operation outputs.",
+                  "modelProperties": {}
+                }
+              ],
+              "exclusiveParametersModels": [],
+              "showInDsl": false,
+              "name": "General",
+              "description": "",
+              "modelProperties": {}
+            },
+            {
+              "parameters": [
+                {
+                  "type": {
+                    "format": "java",
+                    "type": "String",
+                    "annotations": {
+                      "typeId": "java.lang.String"
+                    }
+                  },
+                  "hasDynamicType": false,
+                  "required": false,
+                  "isConfigOverride": false,
+                  "expressionSupport": "NOT_SUPPORTED",
+                  "role": "BEHAVIOUR",
+                  "dslConfiguration": {
+                    "allowsInlineDefinition": true,
+                    "allowsReferences": true,
+                    "allowTopLevelDefinition": false
+                  },
+                  "layoutModel": {
+                    "password": false,
+                    "text": false,
+                    "query": false,
+                    "tabName": "Advanced"
+                  },
+                  "elementReferences": [],
+                  "name": "target",
+                  "displayModel": {
+                    "displayName": "Target Variable"
+                  },
+                  "description": "The name of a variable on which the operation\u0027s output will be placed",
+                  "modelProperties": {}
+                }
+              ],
+              "exclusiveParametersModels": [],
+              "showInDsl": false,
+              "name": "Output",
+              "description": "",
+              "modelProperties": {}
+            }
+          ],
+          "name": "readStreamNonBlocking",
+          "description": "",
+          "modelProperties": {},
+          "kind": "operation"
+        },
+        {
           "blocking": true,
           "executionType": "BLOCKING",
           "errors": [
