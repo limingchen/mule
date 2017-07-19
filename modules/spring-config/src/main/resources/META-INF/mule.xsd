@@ -2731,6 +2731,7 @@
                 </xsd:attribute>
             </xsd:extension>
         </xsd:complexContent>
+
     </xsd:complexType>
 
     <xsd:complexType name="onErrorPropagateType">
