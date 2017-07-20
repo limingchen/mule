@@ -111,6 +111,11 @@
             <version>${aetherProviderVersion}</version>
         </dependency>
         <dependency>
+            <groupId>org.mule.tools.maven</groupId>
+            <artifactId>mule-packager</artifactId>
+        </dependency>
+        
+        <dependency>
             <groupId>org.mule.runtime</groupId>
             <artifactId>mule-module-spring-config</artifactId>
             <version>${project.version}</version>
