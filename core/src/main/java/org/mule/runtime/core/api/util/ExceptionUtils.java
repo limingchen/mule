@@ -143,7 +143,8 @@ public class ExceptionUtils {
    */
   public static <T, E extends Exception> T tryExpecting(Class<E> expectedExceptionType,
                                                         Callable<T> callable,
-                                                        ExceptionHandler<T, E> exceptionHandler) throws E {
+                                                        ExceptionHandler<T, E> exceptionHandler)
+      throws E {
     try {
       return callable.call();
     } catch (Exception e) {
@@ -354,8 +355,8 @@ public class ExceptionUtils {
   }
 
   private static Throwable unwrapWrapperErrorMessageAwareException(Throwable exception) {
-    return exception instanceof WrapperErrorMessageAwareException ?
-             ((WrapperErrorMessageAwareException) exception).getRootCause() : exception;
+    return exception instanceof WrapperErrorMessageAwareException ? ((WrapperErrorMessageAwareException) exception).getRootCause()
+        : exception;
   }
 
   private static MessagingException putContext(MessagingException me, Processor failing, Event event, MuleContext context) {
@@ -375,7 +376,7 @@ public class ExceptionUtils {
   }
 
   private static ComponentIdentifier getComponentIdentifier(Object o) {
-    return isAnnotatedObject(o) ? (ComponentIdentifier) ((AnnotatedObject) o).getAnnotation(ANNOTATION_NAME): null;
+    return isAnnotatedObject(o) ? (ComponentIdentifier) ((AnnotatedObject) o).getAnnotation(ANNOTATION_NAME) : null;
   }
 
   private static boolean isAnnotatedObject(Object annotatedObject) {
@@ -397,7 +398,7 @@ public class ExceptionUtils {
 
   private static boolean isWellFormedMessagingException(Throwable t) {
     return t instanceof MessagingException
-             && ((MessagingException) t).getEvent().getError().isPresent()
-             && ((MessagingException) t).getFailingMessageProcessor() != null;
+        && ((MessagingException) t).getEvent().getError().isPresent()
+        && ((MessagingException) t).getFailingMessageProcessor() != null;
   }
 }
