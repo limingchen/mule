@@ -26,7 +26,7 @@ import static org.mule.runtime.api.meta.model.tck.TestCoreExtensionDeclarer.WHEN
 import static org.mule.test.module.extension.internal.util.ExtensionsTestUtils.assertType;
 import org.mule.metadata.api.model.StringType;
 import org.mule.runtime.api.meta.model.ExtensionModel;
-import org.mule.runtime.api.meta.model.Stereotype;
+import org.mule.runtime.api.meta.model.stereotype.Stereotype;
 import org.mule.runtime.api.meta.model.operation.RouteModel;
 import org.mule.runtime.api.meta.model.operation.RouterModel;
 import org.mule.runtime.api.meta.model.operation.ScopeModel;
