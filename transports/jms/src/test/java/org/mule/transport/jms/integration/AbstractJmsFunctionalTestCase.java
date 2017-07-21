@@ -51,7 +51,7 @@ import javax.transaction.SystemException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Rule;
+import org.junit.ClassRule;
 
 /**
  * This is the base class for all integration tests that are part of the JMS integration test suite.  This is
@@ -98,8 +98,8 @@ import org.junit.Rule;
 public abstract class AbstractJmsFunctionalTestCase extends FunctionalTestCase
 {
 
-    @Rule
-    public SystemProperty serializablePackages = new SystemProperty("org.apache.activemq.SERIALIZABLE_PACKAGES", "*");
+    @ClassRule
+    public static SystemProperty serializablePackages = new SystemProperty("org.apache.activemq.SERIALIZABLE_PACKAGES", "*");
 
     public static final String DEFAULT_INPUT_MESSAGE = "INPUT MESSAGE";
     public static final String DEFAULT_OUTPUT_MESSAGE = "OUTPUT MESSAGE";
