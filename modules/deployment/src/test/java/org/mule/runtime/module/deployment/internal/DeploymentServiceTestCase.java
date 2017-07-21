@@ -3934,7 +3934,7 @@ public class DeploymentServiceTestCase extends AbstractMuleTestCase {
                                  new DomainClassLoaderFactory(getClass().getClassLoader())
                                      .create("domain/" + DEFAULT_DOMAIN_NAME, containerClassLoader,
                                              new DomainDescriptor(DEFAULT_DOMAIN_NAME), emptyList()),
-                                 artifactClassLoaderManager, serviceManager, emptyList());
+                                 artifactClassLoaderManager, serviceManager, emptyList(), extensionModelLoaderManager);
   }
 
   /**

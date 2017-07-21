@@ -25,24 +25,26 @@ import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.ST
 import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.TRANSFORMATION;
 import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.VALIDATION;
 import org.mule.runtime.api.message.ErrorType;
+import org.mule.runtime.core.api.exception.DefaultErrorTypeRepository;
 import org.mule.runtime.core.api.exception.ErrorTypeRepository;
+import org.mule.runtime.core.api.exception.CompositeErrorTypeRepository;
 
 /**
- * Factory for {@link ErrorTypeRepository}.
+ * Factory for {@link DefaultErrorTypeRepository}.
  * 
  * @since 4.0
  */
 public class ErrorTypeRepositoryFactory {
 
   /**
-   * Creates the default {@link ErrorTypeRepository} to use in mule.
+   * Creates the default {@link DefaultErrorTypeRepository} to use in mule.
    * <p>
-   * The {@link ErrorTypeRepository} gets populated with the default mappings between common core exceptions and core error types.
+   * The {@link DefaultErrorTypeRepository} gets populated with the default mappings between common core exceptions and core error types.
    * 
-   * @return a new {@link ErrorTypeRepository}.
+   * @return a new {@link DefaultErrorTypeRepository}.
    */
   public static ErrorTypeRepository createDefaultErrorTypeRepository() {
-    ErrorTypeRepository errorTypeRepository = new ErrorTypeRepository();
+    ErrorTypeRepository errorTypeRepository = new DefaultErrorTypeRepository();
     errorTypeRepository.addErrorType(TRANSFORMATION, errorTypeRepository.getAnyErrorType());
     errorTypeRepository.addErrorType(EXPRESSION, errorTypeRepository.getAnyErrorType());
     final ErrorType validationErrorType = errorTypeRepository.addErrorType(VALIDATION, errorTypeRepository.getAnyErrorType());
@@ -67,4 +69,7 @@ public class ErrorTypeRepositoryFactory {
     return errorTypeRepository;
   }
 
+  public static ErrorTypeRepository createDefaultErrorTypeRepository(ErrorTypeRepository parentErrorTypeRepository) {
+    return new CompositeErrorTypeRepository(createDefaultErrorTypeRepository(), parentErrorTypeRepository);
+  }
 }

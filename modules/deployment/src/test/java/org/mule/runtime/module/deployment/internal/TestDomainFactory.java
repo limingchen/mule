@@ -67,7 +67,7 @@ public class TestDomainFactory extends DefaultDomainFactory {
                             DomainClassLoaderBuilderFactory domainClassLoaderBuilderFactory) {
     super(domainDescriptorFactory, new DefaultDomainManager(),
           classLoaderRepository, serviceRepository,
-          pluginDependenciesResolver, domainClassLoaderBuilderFactory);
+          pluginDependenciesResolver, domainClassLoaderBuilderFactory, null);
   }
 
   @Override

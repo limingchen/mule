@@ -32,6 +32,7 @@ import org.mule.runtime.deployment.model.api.plugin.ArtifactPlugin;
 import org.mule.runtime.module.artifact.classloader.ArtifactClassLoader;
 import org.mule.runtime.module.artifact.classloader.ClassLoaderRepository;
 import org.mule.runtime.module.deployment.impl.internal.artifact.ArtifactContextBuilder;
+import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderManager;
 import org.mule.runtime.module.reboot.api.MuleContainerBootstrapUtils;
 import org.mule.runtime.module.service.ServiceRepository;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class DefaultMuleDomain implements Domain {
   private final DomainDescriptor descriptor;
   private final ServiceRepository serviceRepository;
   private final List<ArtifactPlugin> artifactPlugins;
+  private ExtensionModelLoaderManager extensionModelLoaderManager;
   private MuleContextListener muleContextListener;
   private ArtifactClassLoader deploymentClassLoader;
   private final ClassLoaderRepository classLoaderRepository;
@@ -57,12 +59,13 @@ public class DefaultMuleDomain implements Domain {
 
   public DefaultMuleDomain(DomainDescriptor descriptor, ArtifactClassLoader deploymentClassLoader,
                            ClassLoaderRepository classLoaderRepository, ServiceRepository serviceRepository,
-                           List<ArtifactPlugin> artifactPlugins) {
+                           List<ArtifactPlugin> artifactPlugins, ExtensionModelLoaderManager extensionModelLoaderManager) {
     this.deploymentClassLoader = deploymentClassLoader;
     this.classLoaderRepository = classLoaderRepository;
     this.descriptor = descriptor;
     this.serviceRepository = serviceRepository;
     this.artifactPlugins = artifactPlugins;
+    this.extensionModelLoaderManager = extensionModelLoaderManager;
   }
 
   public void setMuleContextListener(MuleContextListener muleContextListener) {
@@ -133,6 +136,7 @@ public class DefaultMuleDomain implements Domain {
           .setArtifactPlugins(artifactPlugins)
           .setExecutionClassloader(deploymentClassLoader.getClassLoader())
           .setArtifactInstallationDirectory(new File(MuleContainerBootstrapUtils.getMuleDomainsDir(), getArtifactName()))
+          .setExtensionModelLoaderRepository(extensionModelLoaderManager)
           .setArtifactType(DOMAIN)
           .setEnableLazyInit(lazy).setClassLoaderRepository(classLoaderRepository).setServiceRepository(serviceRepository);
 

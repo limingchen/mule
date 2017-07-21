@@ -24,6 +24,7 @@ import org.mule.runtime.module.artifact.classloader.ClassLoaderRepository;
 import org.mule.runtime.module.artifact.classloader.MuleDeployableArtifactClassLoader;
 import org.mule.runtime.module.deployment.impl.internal.artifact.ArtifactFactory;
 import org.mule.runtime.module.deployment.impl.internal.plugin.DefaultArtifactPlugin;
+import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderManager;
 import org.mule.runtime.module.service.ServiceRepository;
 
 import java.io.File;
@@ -40,21 +41,25 @@ public class DefaultDomainFactory implements ArtifactFactory<Domain> {
   private final PluginDependenciesResolver pluginDependenciesResolver;
   private final DomainClassLoaderBuilderFactory domainClassLoaderBuilderFactory;
 
+  private ExtensionModelLoaderManager extensionModelLoaderManager;
+
   /**
    * Creates a new domain factory
-   *
-   * @param domainDescriptorFactory creates descriptors for the new domains. Non null.
+   *  @param domainDescriptorFactory creates descriptors for the new domains. Non null.
    * @param domainManager tracks the domains deployed on the container. Non null.
    * @param classLoaderRepository contains all the class loaders in the container. Non null.
    * @param serviceRepository repository of available services. Non null.
    * @param pluginDependenciesResolver resolver for the plugins on which the {@code artifactPluginDescriptor} declares it depends. Non null.
    * @param domainClassLoaderBuilderFactory creates builders to build the classloaders for each domain. Non null.
+   * @param extensionModelLoaderManager
    */
   public DefaultDomainFactory(DomainDescriptorFactory domainDescriptorFactory,
                               DomainManager domainManager,
                               ClassLoaderRepository classLoaderRepository, ServiceRepository serviceRepository,
                               PluginDependenciesResolver pluginDependenciesResolver,
-                              DomainClassLoaderBuilderFactory domainClassLoaderBuilderFactory) {
+                              DomainClassLoaderBuilderFactory domainClassLoaderBuilderFactory,
+                              ExtensionModelLoaderManager extensionModelLoaderManager) {
+    this.extensionModelLoaderManager = extensionModelLoaderManager;
     checkArgument(domainDescriptorFactory != null, "domainDescriptorFactory cannot be null");
     checkArgument(domainManager != null, "Domain manager cannot be null");
     checkArgument(serviceRepository != null, "Service repository cannot be null");
@@ -99,7 +104,9 @@ public class DefaultDomainFactory implements ArtifactFactory<Domain> {
         createArtifactPluginList(domainClassLoader, resolvedArtifactPluginDescriptors);
 
     DefaultMuleDomain defaultMuleDomain =
-        new DefaultMuleDomain(descriptor, domainClassLoader, classLoaderRepository, serviceRepository, artifactPlugins);
+        new DefaultMuleDomain(descriptor, domainClassLoader, classLoaderRepository, serviceRepository, artifactPlugins,
+                              extensionModelLoaderManager);
+
     DomainWrapper domainWrapper = new DomainWrapper(defaultMuleDomain, this);
     domainManager.addDomain(domainWrapper);
     return domainWrapper;

@@ -23,12 +23,11 @@ import org.mule.runtime.deployment.model.internal.domain.AbstractDomainTestCase;
 import org.mule.runtime.deployment.model.internal.domain.DomainClassLoaderBuilder;
 import org.mule.runtime.deployment.model.internal.plugin.PluginDependenciesResolver;
 import org.mule.runtime.module.service.ServiceRepository;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-
-import org.junit.Before;
-import org.junit.Test;
 
 public class DefaultDomainFactoryTestCase extends AbstractDomainTestCase {
 
@@ -41,7 +40,8 @@ public class DefaultDomainFactoryTestCase extends AbstractDomainTestCase {
                                                                               null,
                                                                               serviceRepository,
                                                                               pluginDependenciesResolver,
-                                                                              domainClassLoaderBuilderFactory);
+                                                                              domainClassLoaderBuilderFactory,
+                                                                              null);
 
   public DefaultDomainFactoryTestCase() throws IOException {}
 

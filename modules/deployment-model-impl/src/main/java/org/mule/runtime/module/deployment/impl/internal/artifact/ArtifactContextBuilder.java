@@ -18,6 +18,7 @@ import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_POLICY_PROV
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.APP;
 import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.mule.runtime.core.api.util.UUID.getUUID;
+import static org.mule.runtime.core.internal.exception.ErrorTypeRepositoryFactory.createDefaultErrorTypeRepository;
 import org.mule.runtime.api.app.declaration.ArtifactDeclaration;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.config.custom.ServiceConfigurator;
@@ -26,11 +27,11 @@ import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.ConfigurationBuilder;
 import org.mule.runtime.core.api.config.ConfigurationException;
-import org.mule.runtime.core.api.context.MuleContextBuilder;
-import org.mule.runtime.core.api.context.notification.MuleContextListener;
 import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
 import org.mule.runtime.core.api.config.builders.SimpleConfigurationBuilder;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
+import org.mule.runtime.core.api.context.MuleContextBuilder;
+import org.mule.runtime.core.api.context.notification.MuleContextListener;
 import org.mule.runtime.core.api.policy.PolicyProvider;
 import org.mule.runtime.deployment.model.api.DeployableArtifact;
 import org.mule.runtime.deployment.model.api.artifact.ArtifactConfigurationProcessor;
@@ -343,11 +344,14 @@ public class ArtifactContextBuilder {
           }
 
         }
+
+
         builders.add(new ArtifactExtensionManagerConfigurationBuilder(artifactPlugins,
                                                                       extensionManagerFactory));
         builders.add(createConfigurationBuilderFromApplicationProperties());
         ArtifactConfigurationProcessor artifactConfigurationProcessor = ArtifactConfigurationProcessor.discover();
         AtomicReference<ArtifactContext> artifactContext = new AtomicReference<>();
+        builders.add(new ConnectionManagerConfigurationBuilder(parentArtifact));
         builders.add(new ConfigurationBuilder() {
 
           public boolean isConfigured;
@@ -399,6 +403,11 @@ public class ArtifactContextBuilder {
         muleContextBuilder.setExecutionClassLoader(this.executionClassLoader);
         ArtifactObjectSerializer objectSerializer = new ArtifactObjectSerializer(classLoaderRepository);
         muleContextBuilder.setObjectSerializer(objectSerializer);
+
+        if (parentArtifact != null) {
+          muleContextBuilder
+              .setErrorTypeRepository(createDefaultErrorTypeRepository(parentArtifact.getMuleContext().getErrorTypeRepository()));
+        }
 
         try {
           muleContextFactory.createMuleContext(builders, muleContextBuilder);
