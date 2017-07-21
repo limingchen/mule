@@ -16,7 +16,6 @@ import static org.mule.runtime.core.api.context.notification.EnrichedNotificatio
 import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.UNKNOWN;
 import static org.mule.runtime.core.component.ComponentAnnotations.ANNOTATION_NAME;
 import static org.mule.runtime.core.internal.exception.ErrorMapping.ANNOTATION_ERROR_MAPPINGS;
-import static reactor.core.publisher.Mono.error;
 
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -33,19 +32,15 @@ import org.mule.runtime.core.api.context.notification.EnrichedNotificationInfo;
 import org.mule.runtime.core.api.exception.ErrorTypeLocator;
 import org.mule.runtime.core.api.exception.ErrorTypeRepository;
 import org.mule.runtime.core.api.exception.MessagingException;
-import org.mule.runtime.core.api.exception.MessagingExceptionHandler;
 import org.mule.runtime.core.api.exception.SingleErrorTypeMatcher;
 import org.mule.runtime.core.api.exception.TypedException;
 import org.mule.runtime.core.api.exception.WrapperErrorMessageAwareException;
 import org.mule.runtime.core.api.execution.ExceptionContextProvider;
 import org.mule.runtime.core.api.message.ErrorBuilder;
-import org.mule.runtime.core.api.processor.MessageProcessorChain;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.internal.exception.ErrorMapping;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -54,23 +49,6 @@ import java.util.concurrent.Callable;
  * Mule exception utilities.
  */
 public class ExceptionUtils {
-
-
-  /**
-   * Null {@link MessagingExceptionHandler} which can be used to configure a {@link MessageProcessorChain} to not handle errors.
-   */
-  public static final MessagingExceptionHandler NULL_ERROR_HANDLER = new MessagingExceptionHandler() {
-
-    @Override
-    public Event handleException(MessagingException exception, Event event) {
-      throw new RuntimeException(exception);
-    }
-
-    @Override
-    public Publisher<Event> apply(MessagingException exception) {
-      return error(exception);
-    }
-  };
 
   /**
    * This method returns true if the throwable contains a {@link Throwable} that matches the specified class or subclass in the
@@ -82,30 +60,6 @@ public class ExceptionUtils {
    */
   public static boolean containsType(Throwable throwable, Class<?> type) {
     return org.apache.commons.lang3.exception.ExceptionUtils.indexOfType(throwable, type) > -1;
-  }
-
-  /**
-   * This method returns the throwable closest to the root cause that matches the specified class or subclass. Any null argument
-   * will make the method return null.
-   *
-   * @param throwable the throwable to inspect, may be null
-   * @param type      the type to search for, subclasses match, null returns null
-   * @return the throwable that is closest to the root in the throwable chain that matches the type or subclass of that type.
-   */
-  @SuppressWarnings("unchecked")
-  public static <ET> ET getDeepestOccurrenceOfType(Throwable throwable, Class<ET> type) {
-    if (throwable == null || type == null) {
-      return null;
-    }
-    List<Throwable> throwableList = org.apache.commons.lang3.exception.ExceptionUtils.getThrowableList(throwable);
-    ListIterator<Throwable> listIterator = throwableList.listIterator(throwableList.size());
-    while (listIterator.hasPrevious()) {
-      Throwable candidate = listIterator.previous();
-      if (type.isAssignableFrom(candidate.getClass())) {
-        return (ET) candidate;
-      }
-    }
-    return null;
   }
 
   /**
@@ -378,7 +332,7 @@ public class ExceptionUtils {
                                                                        ErrorTypeRepository errorTypeRepository) {
     List<Throwable> causesAsList = getExceptionsAsList(exception);
     for (Throwable cause : causesAsList) {
-      boolean hasMuleKnownError = !errorTypeLocator.lookupErrorType(cause).equals(UNKNOWN);
+      boolean hasMuleKnownError = !errorTypeLocator.lookupErrorType(cause).getIdentifier().equals("UNKNOWN");
       if (hasMuleKnownError || isWellFormedMessagingException(cause)) {
         return of((Exception) cause);
       }

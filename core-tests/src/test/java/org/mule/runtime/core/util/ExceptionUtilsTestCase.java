@@ -12,8 +12,6 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -26,7 +24,6 @@ import static org.mule.runtime.core.api.util.ExceptionUtils.containsType;
 import static org.mule.runtime.core.api.util.ExceptionUtils.extractCauseOfType;
 import static org.mule.runtime.core.api.util.ExceptionUtils.extractConnectionException;
 import static org.mule.runtime.core.api.util.ExceptionUtils.extractOfType;
-import static org.mule.runtime.core.api.util.ExceptionUtils.getDeepestOccurrenceOfType;
 import static org.mule.runtime.core.api.util.ExceptionUtils.getFullStackTraceWithoutMessages;
 import static org.mule.runtime.core.api.util.ExceptionUtils.updateMessagingExceptionWithError;
 
@@ -43,11 +40,9 @@ import org.mule.runtime.core.api.exception.MessagingException;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 import org.mule.tck.size.SmallTest;
-
+import org.junit.Test;
 import java.io.IOException;
 import java.util.Optional;
-
-import org.junit.Test;
 
 @SmallTest
 public class ExceptionUtilsTestCase extends AbstractMuleTestCase {
@@ -57,49 +52,11 @@ public class ExceptionUtilsTestCase extends AbstractMuleTestCase {
   @Test
   public void testContainsType() {
     assertTrue(containsType(new IllegalArgumentException(), IllegalArgumentException.class));
-
     assertTrue(containsType(new Exception(new IllegalArgumentException()), IllegalArgumentException.class));
-
     assertTrue(containsType(new Exception(new IllegalArgumentException(new NullPointerException())), NullPointerException.class));
-
     assertTrue(containsType(new Exception(new IllegalArgumentException(new NullPointerException())), RuntimeException.class));
-
     assertTrue(containsType(new Exception(new IllegalArgumentException(new NullPointerException())), Exception.class));
-
     assertFalse(containsType(new Exception(new IllegalArgumentException(new NullPointerException())), IOException.class));
-  }
-
-  @Test
-  public void testLastIndexOfType_deepestIsTheOneWeWant() throws Exception {
-    IllegalArgumentException expected = new IllegalArgumentException("something");
-    assertExpectationsForDeepestOccurence(expected);
-  }
-
-  @Test
-  public void testLastIndexOfType_theOneWeWantIsNotTheDeepest() throws Exception {
-    IllegalArgumentException expected = new IllegalArgumentException("something", new NullPointerException("somenull"));
-    assertExpectationsForDeepestOccurence(expected);
-
-  }
-
-  private void assertExpectationsForDeepestOccurence(IllegalArgumentException expected) {
-    assertSame(expected, getDeepestOccurrenceOfType(expected, IllegalArgumentException.class));
-
-    assertSame(expected, getDeepestOccurrenceOfType(new Exception(expected), IllegalArgumentException.class));
-
-    assertSame(expected,
-               getDeepestOccurrenceOfType(new IllegalArgumentException(new Exception(expected)), IllegalArgumentException.class));
-
-    assertNull(getDeepestOccurrenceOfType(new IllegalArgumentException(new Exception(expected)), IOException.class));
-  }
-
-  @Test
-  public void testLastIndexOfType_nullParameters() throws Exception {
-    assertNull(getDeepestOccurrenceOfType(null, null));
-
-    assertNull(getDeepestOccurrenceOfType(new Exception(), null));
-
-    assertNull(getDeepestOccurrenceOfType(null, Exception.class));
   }
 
   @Test

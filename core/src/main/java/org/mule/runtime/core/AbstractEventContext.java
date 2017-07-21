@@ -7,7 +7,7 @@
 package org.mule.runtime.core;
 
 import static java.util.stream.Collectors.toList;
-import static org.mule.runtime.core.api.util.ExceptionUtils.NULL_ERROR_HANDLER;
+import static org.mule.runtime.core.api.exception.MessagingExceptionHandler.NULL_ERROR_HANDLER;
 import static org.mule.runtime.core.internal.util.rx.Operators.requestUnbounded;
 import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.from;
@@ -18,16 +18,14 @@ import org.mule.runtime.core.api.Event;
 import org.mule.runtime.core.api.EventContext;
 import org.mule.runtime.core.api.exception.MessagingException;
 import org.mule.runtime.core.api.exception.MessagingExceptionHandler;
-
-import java.util.LinkedList;
-import java.util.List;
-
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Base class for implementations of {@link EventContext}
