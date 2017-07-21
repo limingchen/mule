@@ -44,7 +44,6 @@ import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNee
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.startIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.stopIfNeeded;
 import static org.mule.runtime.core.api.rx.Exceptions.unwrap;
-import static org.mule.runtime.core.api.util.ExceptionUtils.unwrapErrorMessageAwareException;
 import static org.mule.runtime.core.internal.util.FunctionalUtils.safely;
 import static org.mule.runtime.core.internal.util.JdkVersionUtils.getSupportedJdks;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -52,6 +51,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.config.custom.CustomizationService;
 import org.mule.runtime.api.deployment.management.ComponentInitialStateManager;
+import org.mule.runtime.api.exception.ErrorMessageAwareException;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.i18n.I18nMessage;
@@ -261,8 +261,11 @@ public class DefaultMuleContext implements MuleContext {
       throwable = unwrap(throwable);
       // Only apply hook for Event signals.
       if (signal instanceof Event) {
-        return throwable instanceof MessagingException ? throwable
-            : new MessagingException((Event) signal, unwrapErrorMessageAwareException(throwable));
+        return throwable instanceof MessagingException ? throwable : new MessagingException((Event) signal,
+                                                                                            throwable instanceof ErrorMessageAwareException
+                                                                                                ? ((ErrorMessageAwareException) throwable)
+                                                                                                    .getRootCause()
+                                                                                                : throwable);
       } else {
         return throwable;
       }

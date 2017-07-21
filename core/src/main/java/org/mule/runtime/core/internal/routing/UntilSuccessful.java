@@ -12,9 +12,9 @@ import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.core.api.processor.MessageProcessors.newChain;
 import static org.mule.runtime.core.api.processor.MessageProcessors.processToApply;
 import static org.mule.runtime.core.api.processor.MessageProcessors.processWithChildContext;
-import static org.mule.runtime.core.api.util.ExceptionUtils.getMessagingExceptionCause;
 import static org.mule.runtime.core.privileged.routing.outbound.AbstractOutboundRouter.DEFAULT_FAILURE_EXPRESSION;
 import static reactor.core.publisher.Flux.from;
+
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.i18n.I18nMessage;
@@ -30,15 +30,13 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Router;
 import org.mule.runtime.core.api.retry.policy.RetryPolicyExhaustedException;
 import org.mule.runtime.core.api.retry.policy.SimpleRetryPolicyTemplate;
-
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * UntilSuccessful attempts to route a message to the message processor it contains. Routing is considered successful if no
@@ -116,6 +114,18 @@ public class UntilSuccessful extends AbstractMuleObjectOwner implements Router {
                                                                       cause, this),
                                     this);
     };
+  }
+
+  /**
+   * Given a {@link MessagingException} return the first cause that isn't a {@link MessagingException}.
+   * If the candidate throwable is not a {@link MessagingException} then it is returned as is.
+   */
+  private static Throwable getMessagingExceptionCause(Throwable throwable) {
+    Throwable cause = throwable;
+    while (cause instanceof MessagingException) {
+      cause = cause.getCause();
+    }
+    return cause;
   }
 
   private ReactiveProcessor scheduleRoute(ReactiveProcessor route) {

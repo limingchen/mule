@@ -14,13 +14,13 @@ import static org.mule.runtime.api.exception.ExceptionHelper.getExceptionsAsList
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.core.api.context.notification.EnrichedNotificationInfo.createInfo;
 import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.UNKNOWN;
+import static org.mule.runtime.core.api.exception.Errors.Identifiers.UNKNOWN_ERROR_IDENTIFIER;
 import static org.mule.runtime.core.component.ComponentAnnotations.ANNOTATION_NAME;
 import static org.mule.runtime.core.internal.exception.ErrorMapping.ANNOTATION_ERROR_MAPPINGS;
 
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.connection.ConnectionException;
-import org.mule.runtime.api.exception.ErrorMessageAwareException;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.message.Error;
@@ -41,7 +41,6 @@ import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.internal.exception.ErrorMapping;
 import org.slf4j.Logger;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -142,9 +141,9 @@ public class ExceptionUtils {
    * @return a value returned by either the {@code callable} or the {@code exceptionHandler}
    * @throws E if the expected exception is actually thrown
    */
-  public static <T, E extends Exception> T tryExpecting(Class<E> expectedExceptionType, Callable<T> callable,
-                                                        ExceptionHandler<T, E> exceptionHandler)
-      throws E {
+  public static <T, E extends Exception> T tryExpecting(Class<E> expectedExceptionType,
+                                                        Callable<T> callable,
+                                                        ExceptionHandler<T, E> exceptionHandler) throws E {
     try {
       return callable.call();
     } catch (Exception e) {
@@ -161,61 +160,6 @@ public class ExceptionUtils {
   }
 
   /**
-   * Determine the {@link ErrorType} of a given exception thrown by a given message processor.
-   *
-   * @param annotatedObject  the component that threw the exception.
-   * @param exception        the exception thrown.
-   * @param errorTypeLocator the {@link ErrorTypeLocator}.
-   * @return the resolved {@link ErrorType}
-   */
-  private static ErrorType getErrorTypeFromFailingProcessor(Object annotatedObject, Throwable exception,
-                                                            ErrorType previous, ErrorTypeLocator errorTypeLocator) {
-    ErrorType errorType;
-    Throwable causeException = unwrapIfNeeded(exception);
-    ComponentIdentifier componentIdentifier = null;
-    List<ErrorMapping> errorMappings = null;
-    if (AnnotatedObject.class.isAssignableFrom(annotatedObject.getClass())) {
-      componentIdentifier = (ComponentIdentifier) ((AnnotatedObject) annotatedObject).getAnnotation(ANNOTATION_NAME);
-      errorMappings = (List<ErrorMapping>) ((AnnotatedObject) annotatedObject).getAnnotation(ANNOTATION_ERROR_MAPPINGS);
-    }
-    if (previous != null) {
-      errorType = previous;
-    } else if (componentIdentifier != null) {
-      errorType = errorTypeLocator.lookupComponentErrorType(componentIdentifier, causeException);
-    } else {
-      errorType = errorTypeLocator.lookupErrorType(causeException);
-    }
-
-    if (errorMappings != null && !errorMappings.isEmpty()) {
-      Optional<ErrorMapping> matchedErrorMapping = errorMappings.stream().filter(mapping -> mapping.match(errorType)).findFirst();
-      if (matchedErrorMapping.isPresent()) {
-        return matchedErrorMapping.get().getTarget();
-      }
-    }
-    return errorType;
-  }
-
-  private static Throwable unwrapIfNeeded(Throwable exception) {
-    return exception instanceof WrapperErrorMessageAwareException ? ((WrapperErrorMessageAwareException) exception).getRootCause()
-        : exception;
-  }
-
-  public static MessagingException putContext(MessagingException messagingException, Processor failingMessageProcessor,
-                                              Event event, MuleContext muleContext) {
-    EnrichedNotificationInfo notificationInfo =
-        createInfo(event, messagingException, null);
-    for (ExceptionContextProvider exceptionContextProvider : muleContext.getExceptionContextProviders()) {
-      for (Map.Entry<String, Object> contextInfoEntry : exceptionContextProvider
-          .getContextInfo(notificationInfo, failingMessageProcessor).entrySet()) {
-        if (!messagingException.getInfo().containsKey(contextInfoEntry.getKey())) {
-          messagingException.getInfo().put(contextInfoEntry.getKey(), contextInfoEntry.getValue());
-        }
-      }
-    }
-    return messagingException;
-  }
-
-  /**
    * Create new {@link Event} with {@link org.mule.runtime.api.message.Error} instance set.
    *
    * @param currentEvent       event when error occured.
@@ -224,7 +168,9 @@ public class ExceptionUtils {
    * @param errorTypeLocator   the mule context.
    * @return new {@link Event} with relevant {@link org.mule.runtime.api.message.Error} set.
    */
-  public static Event createErrorEvent(Event currentEvent, Object processor, MessagingException messagingException,
+  public static Event createErrorEvent(Event currentEvent,
+                                       Object processor,
+                                       MessagingException messagingException,
                                        ErrorTypeLocator errorTypeLocator) {
     // TODO: MULE-10970/MULE-10971 - Change signature to AnnotatedObject once every processor and source is one
     Throwable causeException = messagingException.getCause() != null ? messagingException.getCause() : messagingException;
@@ -235,8 +181,7 @@ public class ExceptionUtils {
         .isPresent();
 
     if (hasErrorMappings(processor) || !errorMatchesException) {
-      ErrorType errorType = currentEvent.getError().map(Error::getErrorType).orElse(null);
-      Error newError = getErrorFromFailingProcessor(processor, causeException, errorType, errorTypeLocator);
+      Error newError = getErrorFromFailingProcessor(processor, causeException, currentEvent, errorTypeLocator);
       Event event = Event.builder(messagingException.getEvent()).error(newError).build();
       messagingException.setProcessedEvent(event);
       return event;
@@ -257,59 +202,78 @@ public class ExceptionUtils {
    * @param muleContext         the context of the artifact
    * @return a {@link MessagingException} with the proper {@link Error} associated to it's {@link Event}
    */
-  public static MessagingException updateMessagingException(Logger logger, Processor processor, MessagingException exception,
+  public static MessagingException updateMessagingException(Logger logger,
+                                                            Processor processor,
+                                                            MessagingException exception,
                                                             ErrorTypeLocator errorTypeLocator,
-                                                            ErrorTypeRepository errorTypeRepository, MuleContext muleContext) {
-    Optional<Exception> rootException =
-        findRootExceptionForErrorHandling(exception, processor, errorTypeLocator, errorTypeRepository);
+                                                            ErrorTypeRepository errorTypeRepository,
+                                                            MuleContext muleContext) {
+    Optional<Exception> root = findRootExceptionForErrorHandling(exception, processor, errorTypeLocator, errorTypeRepository);
 
-    Exception result;
-    if (rootException.isPresent()) {
+    if (root.isPresent()) {
       if (logger.isDebugEnabled()) {
         logger.debug("discarding exception that is wrapping the original error", exception);
       }
-      if (!hasErrorMappings(processor) && isWellFormedMessagingException(rootException.get())) {
-        return (MessagingException) rootException.get();
+      if (!hasErrorMappings(processor) && isWellFormedMessagingException(root.get())) {
+        return (MessagingException) root.get();
       }
-      result = rootException.get();
-    } else {
-      result = exception;
     }
 
+    Exception resultRootException = root.orElse(exception);
     Processor failing = exception.getFailingMessageProcessor();
-    if (failing == null && result instanceof MessagingException) {
-      failing = ((MessagingException) result).getFailingMessageProcessor();
+    if (failing == null && resultRootException instanceof MessagingException) {
+      failing = ((MessagingException) resultRootException).getFailingMessageProcessor();
     }
 
     if (failing == null) {
       failing = processor;
-      exception = new MessagingException(createStaticMessage(result.getMessage()), exception.getEvent(),
-                                         result instanceof MessagingException ? result.getCause() : result,
-                                         processor);
+      exception = new MessagingException(createStaticMessage(resultRootException.getMessage()), exception.getEvent(),
+                                         unwrapMessagingException(resultRootException), processor);
     }
 
-    ErrorType errorType = errorTypeLocator.lookupErrorType(result);
-    ErrorType previous = exception.getEvent().getError().map(Error::getErrorType).orElse(null);
-    Error error =
-        getErrorFromFailingProcessor(processor, result, errorType.equals(UNKNOWN) ? previous : errorType, errorTypeLocator);
+    Error error = getErrorFromFailingProcessor(processor, resultRootException, exception.getEvent(), errorTypeLocator);
     Event resultEvent = Event.builder(exception.getEvent()).error(error).build();
     exception.setProcessedEvent(createErrorEvent(resultEvent, processor, exception, errorTypeLocator));
     return putContext(exception, failing, exception.getEvent(), muleContext);
   }
 
-  private static boolean hasErrorMappings(Object processor) {
-    boolean hasErrorMappings = false;
-    if (AnnotatedObject.class.isAssignableFrom(processor.getClass())) {
-      final Object errorMappingAnnotation = ((AnnotatedObject) processor).getAnnotation(ANNOTATION_ERROR_MAPPINGS);
-      hasErrorMappings = errorMappingAnnotation != null && !((List<ErrorMapping>) errorMappingAnnotation).isEmpty();
-    }
-    return hasErrorMappings;
+  /**
+   * Determines the {@link Error} of a given exception thrown by a given message processor.
+   *
+   * @param object the component that threw the exception.
+   * @param cause    the exception thrown.
+   * @param currentEvent the current event
+   * @param locator the {@link ErrorTypeLocator}
+   * @return a resolved {@link Error} for the processor
+   */
+  public static Error getErrorFromFailingProcessor(Object object, Throwable cause, Event currentEvent, ErrorTypeLocator locator) {
+    ErrorType currentError = currentEvent != null ? currentEvent.getError().map(Error::getErrorType).orElse(null) : null;
+    currentError = hasKnownError(locator, cause) ? locator.lookupErrorType(cause) : currentError;
+    return ErrorBuilder.builder(cause).errorType(getErrorTypeFromFailingProcessor(object, cause, currentError, locator)).build();
   }
 
-  private static boolean isWellFormedMessagingException(Throwable t) {
-    return t instanceof MessagingException
-        && ((MessagingException) t).getEvent().getError().isPresent()
-        && ((MessagingException) t).getFailingMessageProcessor() != null;
+  private static ErrorType getErrorTypeFromFailingProcessor(Object annotatedObject, Throwable exception,
+                                                            ErrorType currentErrorType, ErrorTypeLocator locator) {
+    Throwable causeException = unwrapWrapperErrorMessageAwareException(exception);
+    ComponentIdentifier componentIdentifier = getComponentIdentifier(annotatedObject);
+    List<ErrorMapping> errorMappings = getErrorMappings(annotatedObject);
+
+    ErrorType errorType;
+    if (currentErrorType != null) {
+      errorType = currentErrorType;
+    } else if (componentIdentifier != null) {
+      errorType = locator.lookupComponentErrorType(componentIdentifier, causeException);
+    } else {
+      errorType = locator.lookupErrorType(causeException);
+    }
+
+    if (errorMappings != null && !errorMappings.isEmpty()) {
+      Optional<ErrorMapping> matchedErrorMapping = errorMappings.stream().filter(mapping -> mapping.match(errorType)).findFirst();
+      if (matchedErrorMapping.isPresent()) {
+        return matchedErrorMapping.get().getTarget();
+      }
+    }
+    return errorType;
   }
 
   /**
@@ -327,13 +291,13 @@ public class ExceptionUtils {
    * @param errorTypeRepository the error type repository
    * @return the found exception or empty.
    */
-  private static Optional<Exception> findRootExceptionForErrorHandling(Exception exception, Processor processor,
+  private static Optional<Exception> findRootExceptionForErrorHandling(Exception exception,
+                                                                       Processor processor,
                                                                        ErrorTypeLocator errorTypeLocator,
                                                                        ErrorTypeRepository errorTypeRepository) {
     List<Throwable> causesAsList = getExceptionsAsList(exception);
     for (Throwable cause : causesAsList) {
-      boolean hasMuleKnownError = !errorTypeLocator.lookupErrorType(cause).getIdentifier().equals("UNKNOWN");
-      if (hasMuleKnownError || isWellFormedMessagingException(cause)) {
+      if (hasKnownError(errorTypeLocator, cause) || isWellFormedMessagingException(cause)) {
         return of((Exception) cause);
       }
     }
@@ -373,42 +337,67 @@ public class ExceptionUtils {
     return empty();
   }
 
+  private static boolean hasKnownError(ErrorTypeLocator errorTypeLocator, Throwable cause) {
+    return !errorTypeLocator.lookupErrorType(cause).getIdentifier().equals(UNKNOWN_ERROR_IDENTIFIER);
+  }
+
   private static boolean errorCauseMatchesException(Throwable causeException, Error error) {
     return causeException.equals(error.getCause());
   }
 
-  public static Error getErrorFromFailingProcessor(Object annotatedObject, Throwable causeException,
-                                                   ErrorType previous, ErrorTypeLocator errorTypeLocator) {
-    ErrorType errorType = getErrorTypeFromFailingProcessor(annotatedObject, causeException, previous, errorTypeLocator);
-    return ErrorBuilder.builder(causeException).errorType(errorType).build();
-  }
-
-  public static MessagingException updateMessagingExceptionWithError(MessagingException exception, Processor failing,
-                                                                     MuleContext muleContext) {
+  public static MessagingException updateMessagingExceptionWithError(MessagingException me, Processor failing, MuleContext ctx) {
     // If Event already has Error, for example because of an interceptor then conserve existing Error instance
-    if (!exception.getEvent().getError().isPresent()) {
-      exception.setProcessedEvent(createErrorEvent(exception.getEvent(), failing, exception, muleContext.getErrorTypeLocator()));
+    if (!me.getEvent().getError().isPresent()) {
+      me.setProcessedEvent(createErrorEvent(me.getEvent(), failing, me, ctx.getErrorTypeLocator()));
     }
-    return putContext(exception, failing, exception.getEvent(), muleContext);
+    return putContext(me, failing, me.getEvent(), ctx);
   }
 
-  /**
-   * Resolve the root cause of an exception. If the exception is an instance of {@link ErrorMessageAwareException} then it's root
-   * cause is used, else the candidate exception instance if returned.
-   */
-  public static Throwable unwrapErrorMessageAwareException(Throwable exception) {
-    return exception instanceof ErrorMessageAwareException ? ((ErrorMessageAwareException) exception).getRootCause() : exception;
+  private static Throwable unwrapWrapperErrorMessageAwareException(Throwable exception) {
+    return exception instanceof WrapperErrorMessageAwareException ?
+             ((WrapperErrorMessageAwareException) exception).getRootCause() : exception;
   }
 
-  /**
-   * Given a {@link MessagingException} return the first cause that isn't a {@link MessagingException}.
-   * If the candidate throwable is not a {@link MessagingException} then it is returned as is.
-   */
-  public static Throwable getMessagingExceptionCause(Throwable throwable) {
-    Throwable cause = throwable;
-    while (cause instanceof MessagingException) {
-      cause = cause.getCause();
+  private static MessagingException putContext(MessagingException me, Processor failing, Event event, MuleContext context) {
+    EnrichedNotificationInfo notificationInfo = createInfo(event, me, null);
+    for (ExceptionContextProvider exceptionContextProvider : context.getExceptionContextProviders()) {
+      exceptionContextProvider.getContextInfo(notificationInfo, failing).forEach((k, v) -> {
+        if (!me.getInfo().containsKey(k)) {
+          me.getInfo().put(k, v);
+        }
+      });
     }
-    return cause;
+    return me;
+  }
+
+  private static List<ErrorMapping> getErrorMappings(Object o) {
+    return isAnnotatedObject(o) ? (List<ErrorMapping>) ((AnnotatedObject) o).getAnnotation(ANNOTATION_ERROR_MAPPINGS) : null;
+  }
+
+  private static ComponentIdentifier getComponentIdentifier(Object o) {
+    return isAnnotatedObject(o) ? (ComponentIdentifier) ((AnnotatedObject) o).getAnnotation(ANNOTATION_NAME): null;
+  }
+
+  private static boolean isAnnotatedObject(Object annotatedObject) {
+    return AnnotatedObject.class.isAssignableFrom(annotatedObject.getClass());
+  }
+
+  private static Throwable unwrapMessagingException(Exception exception) {
+    return exception instanceof MessagingException ? exception.getCause() : exception;
+  }
+
+  private static boolean hasErrorMappings(Object processor) {
+    boolean hasErrorMappings = false;
+    if (isAnnotatedObject(processor)) {
+      final Object errorMappingAnnotation = ((AnnotatedObject) processor).getAnnotation(ANNOTATION_ERROR_MAPPINGS);
+      hasErrorMappings = errorMappingAnnotation != null && !((List<ErrorMapping>) errorMappingAnnotation).isEmpty();
+    }
+    return hasErrorMappings;
+  }
+
+  private static boolean isWellFormedMessagingException(Throwable t) {
+    return t instanceof MessagingException
+             && ((MessagingException) t).getEvent().getError().isPresent()
+             && ((MessagingException) t).getFailingMessageProcessor() != null;
   }
 }
